@@ -28,10 +28,10 @@ ofx category NAME
     - list all addons in the category
 
 ofx owner
-    - lists all owners
+    - list all owners
 
 ofx owner NAME
-    - lists all addons belonging to owner
+    - list all addons belonging to owner
 
 
 ofx info NAME

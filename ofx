@@ -41,12 +41,12 @@ class Addon:
 		self.clone_url = json['clone_url']
 
 	def print_short(self):
-		print self.name, ' - ', self.description
+		print self.name, '-', self.description.encode('utf-8')
 
 	def print_long(self):
 		print self.name
 		print '=' * len(self.name)
-		print self.description
+		print self.description.encode('utf-8')
 		print
 		print 'Owner     :', self.owner
 		print 'Category  :', self.category

@@ -1,0 +1,291 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2013 Pavol Rusnak
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+import os
+import sys
+import simplejson
+import urllib2
+import shutil
+
+class Addon:
+
+	def __init__(self, json):
+		self.name = json['name']
+		self.name_l = self.name.lower()
+		self.description = json['description'] or ''
+		self.description_l = self.description.lower()
+		self.owner = json['owner']
+		self.owner_l = self.owner.lower()
+		self.category = json['category']
+		self.category_l = self.category.lower()
+		self.homepage = json['homepage']
+		self.clone_url = json['clone_url']
+
+	def print_short(self):
+		print self.name, ' - ', self.description
+
+	def print_long(self):
+		print self.name
+		print '=' * len(self.name)
+		print self.description
+		print
+		print 'Owner     :', self.owner
+		print 'Category  :', self.category
+		print 'Homepage  :', self.homepage
+		print 'Clone URL :', self.clone_url
+
+class Addons:
+
+	def __init__(self):
+		self.JSON_URL = 'http://ofxaddons.com/api/v1/all.json'
+		self.JSON_LOCAL = 'ofxaddons.json'
+		self.load()
+
+	def load(self):
+		try:
+			f = open(self.JSON_LOCAL, 'rt')
+		except:
+			self.download()
+			f = open(self.JSON_LOCAL, 'rt')
+		json = simplejson.load(f)
+		f.close()
+		self.data = []
+		for i in json['repos']:
+			self.data.append(Addon(i))
+
+	def download(self):
+		print "Downloading %s into %s ..." % (self.JSON_URL , self.JSON_LOCAL)
+		f = urllib2.urlopen(self.JSON_URL)
+		with open(self.JSON_LOCAL, 'wt') as local:
+			local.write(f.read())
+		f.close()
+
+	def by_name(self, name):
+		return [i for i in self.data if name == i.name_l]
+
+	def by_name_uniq(self, name):
+		a = [i for i in self.data if name == i.name_l]
+		if len(a) > 1:
+			print 'Unfortunately more than 1 addon with this name found. Bailing out. :-/'
+			return None
+		if len(a) == 0:
+			print "Addon not found."
+			return None
+		return a[0]
+
+	def by_namedesc(self, namedesc):
+		return [i for i in self.data if namedesc in i.name_l or namedesc in i.description_l]
+
+	def by_category(self, category):
+		return [i for i in self.data if category in i.category_l]
+
+	def by_owner(self, owner):
+		return [i for i in self.data if owner == i.owner_l]
+
+class App:
+
+	def __init__(self, argv):
+		self.mode = len(argv) > 1 and argv[1].lower() or 'help'
+		self.param = len(argv) > 2 and argv[2].lower() or None
+
+	def check(self):
+		if not os.path.isdir('addons'):
+			print 'Directory "addons" not found. You probably put this script in wrong location.'
+			return False
+		self.addons = Addons()
+		return True
+
+	def run(self):
+		if self.mode == 'refresh':
+			self.do_refresh()
+		elif self.mode == 'info':
+			self.do_info(self.param)
+		elif self.mode == 'install':
+			self.do_install(self.param)
+		elif self.mode == 'reinstall':
+			self.do_reinstall(self.param)
+		elif self.mode == 'upgrade':
+			self.do_upgrade(self.param)
+		elif self.mode == 'remove':
+			self.do_remove(self.param)
+		elif self.mode == 'list':
+			self.do_list()
+		elif self.mode == 'search':
+			self.do_search(self.param)
+		elif self.mode == 'category':
+			self.do_category(self.param)
+		elif self.mode == 'owner':
+			self.do_owner(self.param)
+		else:
+			self.do_help()
+
+	def do_refresh(self):
+		self.addons.download()
+
+	def do_info(self, param):
+		if not self.param:
+			print 'You have to provide parameter for info'
+			return
+		for i in self.addons.by_name(self.param):
+			print
+			i.print_long()
+
+	def do_install(self, param):
+		if not self.param:
+			print 'You have to provide parameter for install'
+			return
+		i = self.addons.by_name_uniq(self.param)
+		if not i:
+			return
+		if os.path.isdir('addons/' + i.name):
+			print 'Addon "%s" already installed. Use reinstall or upgrade.' % i.name
+			return
+		os.system("cd addons ; git clone %s" % i.clone_url)
+
+	def do_reinstall(self, param):
+		if not self.param:
+			print 'You have to provide parameter for reinstall'
+			return
+		i = self.addons.by_name_uniq(self.param)
+		if not i:
+			return
+		shutil.rmtree('addons/' + i.name)
+		os.system("cd addons ; git clone %s" % i.clone_url)
+
+	def do_upgrade(self, param):
+		if not self.param:
+			print 'You have to provide parameter for upgrade'
+			return
+		i = self.addons.by_name_uniq(self.param)
+		if not i:
+			return
+		if not os.path.isdir('addons/' + i.name):
+			print 'Addon "%s" not installed.' % i.name
+			return
+		os.system("cd addons/%s ; git pull" % i.name)
+
+	def do_remove(self, param):
+		if not self.param:
+			print 'You have to provide parameter for remove'
+			return
+		i = self.addons.by_name_uniq(self.param)
+		if not i:
+			return
+		if not os.path.isdir('addons/' + i.name):
+			print 'Addon "%s" not installed.' % i.name
+			return
+		shutil.rmtree('addons/' + i.name)
+
+	def do_list(self):
+		for i in self.addons.data:
+			i.print_short()
+
+	def do_search(self, param):
+		if not self.param:
+			print 'You have to provide parameter for search'
+			return
+		for i in self.addons.by_namedesc(self.param):
+			i.print_short()
+
+	def do_category(self, param):
+		if not self.param:
+			# list categories
+			categories = {}
+			for i in self.addons.data:
+				cat = i.category
+				if cat in categories:
+					categories[cat] += 1
+				else:
+					categories[cat] = 1
+			for cat in sorted(categories.iterkeys()):
+				print cat, '(', categories[cat], ')'
+			return
+		for i in self.addons.by_category(self.param):
+			i.print_short()
+
+	def do_owner(self, param):
+		if not self.param:
+			# list owners
+			owners = {}
+			for i in self.addons.data:
+				owner = i.owner
+				if owner in owners:
+					owners[owner] += 1
+				else:
+					owners[owner] = 1
+			for owner in sorted(owners.iterkeys()):
+				print owner, '(', owners[owner], ')'
+			return
+		for i in self.addons.by_owner(self.param):
+			i.print_short()
+
+	def do_help(self):
+		print """
+OFX - OpenFrameworks Management Tool
+====================================
+
+ofx
+ofx help
+    - print this help
+
+ofx refresh
+    - redownload addons list (otherwise it is downloaded just once)
+
+
+ofx list
+    - list all addons
+
+ofx search TEXT
+    - search for text in name and description of addons
+
+ofx category
+    - list categories of adddons
+
+ofx category NAME
+    - list all addons in the category
+
+ofx owner
+    - lists all owners
+
+ofx owner NAME
+    - lists all addons belonging to owner
+
+
+ofx info NAME
+    - show info about addon
+
+ofx install NAME
+    - install addon
+
+ofx reinstall NAME
+    - removes and installs addon
+
+ofx upgrade NAME
+    - upgrades addon (calls git pull in its directory)
+
+ofx remove NAME
+    - remove addon
+"""
+
+app = App(sys.argv)
+if app.check():
+	app.run()

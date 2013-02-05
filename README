@@ -22,7 +22,7 @@ ofx search TEXT
     - search for text in name and description of addons
 
 ofx category
-    - list categories of adddons
+    - list categories of addons
 
 ofx category NAME
     - list all addons in the category
@@ -41,10 +41,10 @@ ofx install NAME
     - install addon
 
 ofx reinstall NAME
-    - removes and installs addon
+    - remove and install addon
 
 ofx upgrade NAME
-    - upgrades addon (calls git pull in its directory)
+    - upgrade addon (call git pull in its directory)
 
 ofx remove NAME
     - remove addon

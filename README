@@ -1,9 +1,10 @@
 OFX - OpenFrameworks Management Tool
 ====================================
 
-Put this script into your OpenFrameworks installation directory (the one that
-contains "addons" directory) or define the OF_ROOT environment variable so it
-points to your OpenFrameworks installation directory.
+Put this script into your OpenFrameworks root directory (the one that contains
+"addons" directory) or define the OF_ROOT and/or OF_ADDONS environment variables
+so they point to your OpenFrameworks root directory and/or your OpenFrameworks
+addons directory.
 
 Usage
 -----

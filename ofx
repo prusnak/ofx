@@ -109,10 +109,11 @@ class App:
 		self.mode = len(argv) > 1 and argv[1].lower() or 'help'
 		self.param = len(argv) > 2 and argv[2].lower() or None
 		self.OF_ROOT = os.getenv('OF_ROOT', '.')
+		self.OF_ADDONS = os.getenv('OF_ADDONS', os.path.join(self.OF_ROOT, 'addons'))
 
 	def check(self):
-		if not os.path.isdir(os.path.join(self.OF_ROOT, 'addons')):
-			print 'Directory "addons" not found. Put the script into OpenFrameworks directory or correctly define the OF_ROOT environment variable.'
+		if not os.path.isdir(self.OF_ADDONS):
+			print 'Directory "addons" not found. Put the script into OpenFrameworks directory or correctly define the OF_ROOT/OF_ADDONS environment variables.'
 			return False
 		self.addons = Addons()
 		return True
@@ -142,10 +143,10 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		if os.path.isdir(os.path.join(self.OF_ROOT, 'addons', i.name)):
+		if os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):
 			print 'Addon "%s" already installed. Use reinstall or upgrade.' % i.name
 			return
-		os.system("cd %s ; git clone %s" % (os.path.join(self.OF_ROOT, 'addons'), i.clone_url))
+		os.system("cd \"%s\" ; git clone \"%s\"" % (self.OF_ADDONS, i.clone_url))
 
 	def do_reinstall(self, param):
 		if not self.param:
@@ -154,8 +155,8 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		shutil.rmtree(os.path.join(self.OF_ROOT, 'addons', i.name))
-		os.system("cd %s ; git clone %s" % (os.path.join(self.OF_ROOT, 'addons'), i.clone_url))
+		shutil.rmtree(os.path.join(self.OF_ADDONS, i.name))
+		os.system("cd \"%s\" ; git clone \"%s\"" % (self.OF_ADDONS, i.clone_url))
 
 	def do_upgrade(self, param):
 		if not self.param:
@@ -164,10 +165,10 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		if not os.path.isdir(os.path.join(self.OF_ROOT, 'addons', i.name)):
+		if not os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):
 			print 'Addon "%s" not installed.' % i.name
 			return
-		os.system("cd %s ; git pull" % os.path.join(self.OF_ROOT, 'addons', i.name))
+		os.system("cd \"%s\" ; git pull" % os.path.join(self.OF_ADDONS, i.name))
 
 	def do_remove(self, param):
 		if not self.param:
@@ -176,17 +177,17 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		if not os.path.isdir(os.path.join(self.OF_ROOT, 'addons', i.name)):
+		if not os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):
 			print 'Addon "%s" not installed.' % i.name
 			return
-		shutil.rmtree(os.path.join(self.OF_ROOT, 'addons', i.name))
+		shutil.rmtree(os.path.join(self.OF_ADDONS, i.name))
 
 	def do_list(self, param):
 		for i in self.addons.data:
 			i.print_short()
 
 	def do_listinstalled(self, param):
-		for n in sorted(os.listdir(os.path.join(self.OF_ROOT, 'addons'))):
+		for n in sorted(os.listdir(self.OF_ADDONS)):
 			i = self.addons.by_name_uniq(n.lower(), False)
 			if i:
 				i.print_short()

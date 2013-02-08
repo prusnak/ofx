@@ -58,6 +58,7 @@ class Addons:
 	def __init__(self):
 		self.JSON_URL = 'http://ofxaddons.com/api/v1/all.json'
 		self.JSON_LOCAL = 'ofxaddons.json'
+		self.data = []
 		self.load()
 
 	def load(self):
@@ -86,7 +87,7 @@ class Addons:
 		a = [i for i in self.data if name == i.name_l]
 		if len(a) > 1:
 			if print_errors:
-				print 'Unfortunately more than 1 addon with this name found. Bailing out. :-('
+				print 'Unfortunately more than 1 addon with this name found. :-('
 			return None
 		if len(a) == 0:
 			if print_errors:
@@ -110,6 +111,7 @@ class App:
 		self.param = len(argv) > 2 and argv[2].lower() or None
 		self.OF_ROOT = os.getenv('OF_ROOT', '.')
 		self.OF_ADDONS = os.getenv('OF_ADDONS', os.path.join(self.OF_ROOT, 'addons'))
+		self.addons = None
 
 	def check(self):
 		if not os.path.isdir(self.OF_ADDONS):

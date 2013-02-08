@@ -82,13 +82,15 @@ class Addons:
 	def by_name(self, name):
 		return [i for i in self.data if name == i.name_l]
 
-	def by_name_uniq(self, name):
+	def by_name_uniq(self, name, print_errors = True):
 		a = [i for i in self.data if name == i.name_l]
 		if len(a) > 1:
-			print 'Unfortunately more than 1 addon with this name found. Bailing out. :-/'
+			if print_errors:
+				print 'Unfortunately more than 1 addon with this name found. Bailing out. :-/'
 			return None
 		if len(a) == 0:
-			print "Addon not found."
+			if print_errors:
+				print "Addon not found."
 			return None
 		return a[0]
 
@@ -106,39 +108,23 @@ class App:
 	def __init__(self, argv):
 		self.mode = len(argv) > 1 and argv[1].lower() or 'help'
 		self.param = len(argv) > 2 and argv[2].lower() or None
+		self.OF_ROOT = os.getenv('OF_ROOT', '.')
 
 	def check(self):
-		if not os.path.isdir('addons'):
-			print 'Directory "addons" not found. You probably put this script in wrong location.'
+		if not os.path.isdir('%s/addons/' % self.OF_ROOT):
+			print 'Directory "addons" not found. Put the script into OpenFrameworks directory or correctly define the OF_ROOT environment variable.'
 			return False
 		self.addons = Addons()
 		return True
 
 	def run(self):
-		if self.mode == 'refresh':
-			self.do_refresh()
-		elif self.mode == 'info':
-			self.do_info(self.param)
-		elif self.mode == 'install':
-			self.do_install(self.param)
-		elif self.mode == 'reinstall':
-			self.do_reinstall(self.param)
-		elif self.mode == 'upgrade':
-			self.do_upgrade(self.param)
-		elif self.mode == 'remove':
-			self.do_remove(self.param)
-		elif self.mode == 'list':
-			self.do_list()
-		elif self.mode == 'search':
-			self.do_search(self.param)
-		elif self.mode == 'category':
-			self.do_category(self.param)
-		elif self.mode == 'owner':
-			self.do_owner(self.param)
+		if self.mode in ['refresh', 'info', 'install', 'reinstall', 'upgrade', 'remove', 'list', 'listinstalled', 'search', 'category', 'owner']:
+			method = getattr(self, 'do_' + self.mode)
+			method(self.param)
 		else:
 			self.do_help()
 
-	def do_refresh(self):
+	def do_refresh(self, param):
 		self.addons.download()
 
 	def do_info(self, param):
@@ -156,10 +142,10 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		if os.path.isdir('addons/' + i.name):
+		if os.path.isdir('%s/addons/%s' % (self.OF_ROOT, i.name)):
 			print 'Addon "%s" already installed. Use reinstall or upgrade.' % i.name
 			return
-		os.system("cd addons ; git clone %s" % i.clone_url)
+		os.system("cd %s/addons/ ; git clone %s" % (self.OF_ROOT, i.clone_url))
 
 	def do_reinstall(self, param):
 		if not self.param:
@@ -168,8 +154,8 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		shutil.rmtree('addons/' + i.name)
-		os.system("cd addons ; git clone %s" % i.clone_url)
+		shutil.rmtree('%s/addons/%s' % (self.OF_ROOT, i.name))
+		os.system("cd %s/addons/ ; git clone %s" % (self.OF_ROOT, i.clone_url))
 
 	def do_upgrade(self, param):
 		if not self.param:
@@ -178,10 +164,10 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		if not os.path.isdir('addons/' + i.name):
+		if not os.path.isdir('%s/addons/%s' % (self.OF_ROOT, i.name)):
 			print 'Addon "%s" not installed.' % i.name
 			return
-		os.system("cd addons/%s ; git pull" % i.name)
+		os.system("cd %s/addons/%s ; git pull" % (self.OF_ROOT, i.name))
 
 	def do_remove(self, param):
 		if not self.param:
@@ -190,14 +176,22 @@ class App:
 		i = self.addons.by_name_uniq(self.param)
 		if not i:
 			return
-		if not os.path.isdir('addons/' + i.name):
+		if not os.path.isdir('%s/addons/%s' % (self.OF_ROOT, i.name)):
 			print 'Addon "%s" not installed.' % i.name
 			return
-		shutil.rmtree('addons/' + i.name)
+		shutil.rmtree('%s/addons/%s' % (self.OF_ROOT, i.name))
 
-	def do_list(self):
+	def do_list(self, param):
 		for i in self.addons.data:
 			i.print_short()
+
+	def do_listinstalled(self, param):
+		for n in sorted(os.listdir('%s/addons/' % self.OF_ROOT)):
+			i = self.addons.by_name_uniq(n.lower(), False)
+			if i:
+				i.print_short()
+			else:
+				print n
 
 	def do_search(self, param):
 		if not self.param:
@@ -252,7 +246,10 @@ ofx refresh
 
 
 ofx list
-    - list all addons
+    - list all available addons
+
+ofx listinstalled
+    - list all installed addons
 
 ofx search TEXT
     - search for text in name and description of addons

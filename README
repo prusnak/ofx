@@ -1,8 +1,9 @@
 OFX - OpenFrameworks Management Tool
 ====================================
 
-Put this script into your OpenFrameworks installation directory
-(the one that contains "addons" directory).
+Put this script into your OpenFrameworks installation directory (the one that
+contains "addons" directory) or define the OF_ROOT environment variable so it
+points to your OpenFrameworks installation directory.
 
 Usage
 -----
@@ -16,7 +17,10 @@ ofx refresh
 
 
 ofx list
-    - list all addons
+    - list all available addons
+
+ofx listinstalled
+    - list all installed addons
 
 ofx search TEXT
     - search for text in name and description of addons

@@ -87,13 +87,22 @@ class Addons:
 		a = [i for i in self.data if name == i.name_l]
 		if len(a) > 1:
 			if print_errors:
-				print 'Unfortunately more than 1 addon with this name found. :-('
+				print 'More than 1 addon with this name found.\nUse \'ofx info NAME\' to view the list and \'ofx install NAME OWNER\' to install'
 			return None
 		if len(a) == 0:
 			if print_errors:
 				print "Addon not found."
 			return None
 		return a[0]
+
+	def by_name_and_owner(self, name, owner, print_errors = True):
+		a = [i for i in self.data if name == i.name_l]
+		b = [i for i in a if owner == i.owner_l]
+		if len(b) == 0:
+			if print_errors:
+				print "Addon not found."
+			return None
+		return b[0]
 
 	def by_namedesc(self, namedesc):
 		return [i for i in self.data if namedesc in i.name_l or namedesc in i.description_l]
@@ -109,6 +118,7 @@ class App:
 	def __init__(self, argv):
 		self.mode = len(argv) > 1 and argv[1].lower() or 'help'
 		self.param = len(argv) > 2 and argv[2].lower() or None
+		self.params = argv
 		self.OF_ROOT = os.getenv('OF_ROOT', '.')
 		self.OF_ADDONS = os.getenv('OF_ADDONS', os.path.join(self.OF_ROOT, 'addons'))
 		self.addons = None
@@ -121,9 +131,12 @@ class App:
 		return True
 
 	def run(self):
-		if self.mode in ['refresh', 'info', 'install', 'reinstall', 'upgrade', 'remove', 'list', 'listinstalled', 'search', 'category', 'owner']:
+		if self.mode in ['refresh', 'info', 'reinstall', 'upgrade', 'remove', 'list', 'listinstalled', 'search', 'category', 'owner']:
 			method = getattr(self, 'do_' + self.mode)
 			method(self.param)
+		elif self.mode in ['install']:
+			method = getattr(self, 'do_' + self.mode)
+			method(self.params)
 		else:
 			self.do_help()
 
@@ -138,11 +151,20 @@ class App:
 			print
 			i.print_long()
 
-	def do_install(self, param):
-		if not self.param:
-			print 'You have to provide parameter for install'
+	def do_install(self, params):
+
+		addon_name = len(params) > 2 and params[2].lower() or None
+		owner_name = len(params) > 3 and params[3].lower() or None
+
+		if not addon_name:
+			print 'You have to provide the name of the library you want to install.\nexample : ofx install ofxCv'
 			return
-		i = self.addons.by_name_uniq(self.param)
+
+		if owner_name:
+			i = self.addons.by_name_and_owner(addon_name, owner_name)
+		else:
+			i = self.addons.by_name_uniq(addon_name)
+
 		if not i:
 			return
 		if os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):

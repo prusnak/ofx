@@ -22,9 +22,12 @@
 
 import os
 import sys
-import simplejson
 import urllib2
 import shutil
+try:
+	import simplejson
+except:
+	import json as simplejson
 
 class Addon:
 

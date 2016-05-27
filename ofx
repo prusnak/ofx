@@ -120,8 +120,8 @@ class Addons(object):
 class App(object):
 
     def __init__(self, argv):
-        self.mode = len(argv) > 1 and argv[1].lower() or 'help'
-        self.param = len(argv) > 2 and argv[2].lower() or None
+        self.mode = argv[1].lower() if len(argv) > 1 else 'help'
+        self.param = argv[2].lower() if len(argv) > 2 else None
         self.params = argv
         self.OF_ROOT = os.getenv('OF_ROOT', '.')
         self.OF_ADDONS = os.getenv('OF_ADDONS', os.path.join(self.OF_ROOT, 'addons'))
@@ -157,8 +157,8 @@ class App(object):
 
     def do_install(self, params):
 
-        addon_name = len(params) > 2 and params[2].lower() or None
-        owner_name = len(params) > 3 and params[3].lower() or None
+        addon_name = params[2].lower() if len(params) > 2 else None
+        owner_name = params[3].lower() if len(params) > 3 else None
 
         if not addon_name:
             print('You have to provide the name of the library you want to install.\nexample : ofx install ofxCv')

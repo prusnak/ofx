@@ -20,14 +20,15 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from __future__ import print_function
 import os
 import sys
-import urllib2
 import shutil
-try:
-    import simplejson
-except ImportError:
-    import json as simplejson
+import json as _json
+try: # for Python3
+    from urllib.request import urlopen
+except ImportError: # fall back to Python2 urllib2
+    from urllib2 import urlopen
 
 class Addon(object):
 
@@ -44,17 +45,17 @@ class Addon(object):
         self.clone_url = json['clone_url']
 
     def print_short(self):
-        print self.name, '-', self.description.encode('utf-8')
+        print(self.name, '-', self.description)
 
     def print_long(self):
-        print self.name
-        print '=' * len(self.name)
-        print self.description.encode('utf-8')
-        print
-        print 'Owner     :', self.owner
-        print 'Category  :', self.category
-        print 'Homepage  :', self.homepage
-        print 'Clone URL :', self.clone_url
+        print(self.name)
+        print('=' * len(self.name))
+        print(self.description)
+        print()
+        print('Owner     :', self.owner)
+        print('Category  :', self.category)
+        print('Homepage  :', self.homepage)
+        print('Clone URL :', self.clone_url)
 
 class Addons(object):
 
@@ -70,15 +71,15 @@ class Addons(object):
         except IOError:
             self.download()
             f = open(self.JSON_LOCAL, 'rt')
-        json = simplejson.load(f)
+        json = _json.load(f)
         f.close()
         self.data = []
-        for i in json['repos']:
+        for i in json:
             self.data.append(Addon(i))
 
     def download(self):
-        print "Downloading %s into %s ..." % (self.JSON_URL, self.JSON_LOCAL)
-        f = urllib2.urlopen(self.JSON_URL)
+        print("Downloading %s into %s ..." % (self.JSON_URL, self.JSON_LOCAL))
+        f = urlopen(self.JSON_URL)
         with open(self.JSON_LOCAL, 'wt') as local:
             local.write(f.read())
         f.close()
@@ -90,11 +91,11 @@ class Addons(object):
         a = [i for i in self.data if name == i.name_l]
         if len(a) > 1:
             if print_errors:
-                print 'More than 1 addon with this name found.\nUse \'ofx info NAME\' to view the list and \'ofx install NAME OWNER\' to install'
+                print('More than 1 addon with this name found.\nUse \'ofx info NAME\' to view the list and \'ofx install NAME OWNER\' to install')
             return None
         if len(a) == 0:
             if print_errors:
-                print "Addon not found."
+                print("Addon not found.")
             return None
         return a[0]
 
@@ -103,7 +104,7 @@ class Addons(object):
         b = [i for i in a if owner == i.owner_l]
         if len(b) == 0:
             if print_errors:
-                print "Addon not found."
+                print("Addon not found.")
             return None
         return b[0]
 
@@ -128,7 +129,7 @@ class App(object):
 
     def check(self):
         if not os.path.isdir(self.OF_ADDONS):
-            print 'Directory "addons" not found. Put the script into OpenFrameworks directory or correctly define the OF_ROOT/OF_ADDONS environment variables.'
+            print('Directory "addons" not found. Put the script into OpenFrameworks directory or correctly define the OF_ROOT/OF_ADDONS environment variables.')
             return False
         self.addons = Addons()
         return True
@@ -148,10 +149,10 @@ class App(object):
 
     def do_info(self, _):
         if not self.param:
-            print 'You have to provide parameter for info'
+            print('You have to provide parameter for info')
             return
         for i in self.addons.by_name(self.param):
-            print
+            print()
             i.print_long()
 
     def do_install(self, params):
@@ -160,7 +161,7 @@ class App(object):
         owner_name = len(params) > 3 and params[3].lower() or None
 
         if not addon_name:
-            print 'You have to provide the name of the library you want to install.\nexample : ofx install ofxCv'
+            print('You have to provide the name of the library you want to install.\nexample : ofx install ofxCv')
             return
 
         if owner_name:
@@ -171,13 +172,13 @@ class App(object):
         if not i:
             return
         if os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):
-            print 'Addon "%s" already installed. Use reinstall or upgrade.' % i.name
+            print('Addon "%s" already installed. Use reinstall or upgrade.' % i.name)
             return
         os.system("cd \"%s\" ; git clone \"%s\"" % (self.OF_ADDONS, i.clone_url))
 
     def do_reinstall(self, _):
         if not self.param:
-            print 'You have to provide parameter for reinstall'
+            print('You have to provide parameter for reinstall')
             return
         i = self.addons.by_name_uniq(self.param)
         if not i:
@@ -187,25 +188,25 @@ class App(object):
 
     def do_upgrade(self, _):
         if not self.param:
-            print 'You have to provide parameter for upgrade'
+            print('You have to provide parameter for upgrade')
             return
         i = self.addons.by_name_uniq(self.param)
         if not i:
             return
         if not os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):
-            print 'Addon "%s" not installed.' % i.name
+            print('Addon "%s" not installed.' % i.name)
             return
         os.system("cd \"%s\" ; git pull" % os.path.join(self.OF_ADDONS, i.name))
 
     def do_remove(self, _):
         if not self.param:
-            print 'You have to provide parameter for remove'
+            print('You have to provide parameter for remove')
             return
         i = self.addons.by_name_uniq(self.param)
         if not i:
             return
         if not os.path.isdir(os.path.join(self.OF_ADDONS, i.name)):
-            print 'Addon "%s" not installed.' % i.name
+            print('Addon "%s" not installed.' % i.name)
             return
         shutil.rmtree(os.path.join(self.OF_ADDONS, i.name))
 
@@ -219,11 +220,11 @@ class App(object):
             if i:
                 i.print_short()
             else:
-                print n
+                print(n)
 
     def do_search(self, _):
         if not self.param:
-            print 'You have to provide parameter for search'
+            print('You have to provide parameter for search')
             return
         for i in self.addons.by_namedesc(self.param):
             i.print_short()
@@ -239,7 +240,7 @@ class App(object):
                 else:
                     categories[cat] = 1
             for cat in sorted(categories.iterkeys()):
-                print cat, '(', categories[cat], ')'
+                print(cat, '(', categories[cat], ')')
             return
         for i in self.addons.by_category(self.param):
             i.print_short()
@@ -255,13 +256,13 @@ class App(object):
                 else:
                     owners[owner] = 1
             for owner in sorted(owners.iterkeys()):
-                print owner, '(', owners[owner], ')'
+                print(owner, '(', owners[owner], ')')
             return
         for i in self.addons.by_owner(self.param):
             i.print_short()
 
     def do_help(self):
-        print """
+        print("""
 # OFX - OpenFrameworks Management Tool
 
 ofx / ofx help
@@ -305,7 +306,7 @@ ofx upgrade NAME
 
 ofx remove NAME
 * remove addon
-"""
+""")
 
 app = App(sys.argv)
 if app.check():
